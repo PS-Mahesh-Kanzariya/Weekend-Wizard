@@ -55,6 +55,33 @@ def random_dog() -> Dict[str, Any]:
     r.raise_for_status()
     return r.json()
 
+# ---- Currency converter (ExchangeRate-API) ----
+@mcp.tool()
+def convert_currency(amount: float, from_currency: str, to_currency: str) -> Dict[str, Any]:
+    """Convert between currencies using ExchangeRate-API."""
+    url = "https://api.exchangerate-api.com/v4/latest/USD"
+    r = requests.get(url, timeout=20)
+    r.raise_for_status()
+    rates = r.json().get("rates", {})
+    
+    # If either currency is USD, we can use direct conversion
+    if from_currency.upper() == "USD":
+        converted = amount * rates.get(to_currency.upper(), 0)
+    elif to_currency.upper() == "USD":
+        converted = amount / rates.get(from_currency.upper(), 1)
+    else:
+        # Convert via USD as intermediate
+        to_usd = amount / rates.get(from_currency.upper(), 1)
+        converted = to_usd * rates.get(to_currency.upper(), 0)
+    
+    return {
+        "amount": amount,
+        "from": from_currency.upper(),
+        "to": to_currency.upper(),
+        "converted": round(converted, 2),
+        "timestamp": r.json().get("date")
+    }
+
 # ---- (Optional) Trivia (Open Trivia DB) ----
 @mcp.tool()
 def trivia() -> Dict[str, Any]:
