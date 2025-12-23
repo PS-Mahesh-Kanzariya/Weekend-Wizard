@@ -55,32 +55,49 @@ def random_dog() -> Dict[str, Any]:
     r.raise_for_status()
     return r.json()
 
-# ---- Currency converter (ExchangeRate-API) ----
+# ---- City to Coordinates (Open-Meteo Geocoding) ----
 @mcp.tool()
-def convert_currency(amount: float, from_currency: str, to_currency: str) -> Dict[str, Any]:
-    """Convert between currencies using ExchangeRate-API."""
-    url = "https://api.exchangerate-api.com/v4/latest/USD"
-    r = requests.get(url, timeout=20)
-    r.raise_for_status()
-    rates = r.json().get("rates", {})
+def city_to_coords(city: str) -> Dict[str, Any]:
+    """Convert city name to latitude/longitude coordinates using Open-Meteo Geocoding API."""
+    print(f"[DEBUG] Looking up coordinates for city: {city}")
     
-    # If either currency is USD, we can use direct conversion
-    if from_currency.upper() == "USD":
-        converted = amount * rates.get(to_currency.upper(), 0)
-    elif to_currency.upper() == "USD":
-        converted = amount / rates.get(from_currency.upper(), 1)
-    else:
-        # Convert via USD as intermediate
-        to_usd = amount / rates.get(from_currency.upper(), 1)
-        converted = to_usd * rates.get(to_currency.upper(), 0)
+    # Open-Meteo Geocoding API
+    url = "https://geocoding-api.open-meteo.com/v1/search"
+    params = {
+        "name": city,
+        "count": 1,  # Get only the best match
+        "language": "en",
+        "format": "json"
+    }
+    
+    r = requests.get(url, params=params, timeout=20)
+    r.raise_for_status()
+    data = r.json()
+    
+    results = data.get("results", [])
+    if not results:
+        return {
+            "error": f"No coordinates found for city: {city}",
+            "city": city,
+            "suggestions": "Try a different city name or check spelling."
+        }
+    
+    # Get the first/best result
+    location = results[0]
     
     return {
-        "amount": amount,
-        "from": from_currency.upper(),
-        "to": to_currency.upper(),
-        "converted": round(converted, 2),
-        "timestamp": r.json().get("date")
+        "city": location.get("name"),
+        "country": location.get("country"),
+        "latitude": location.get("latitude"),
+        "longitude": location.get("longitude"),
+        "timezone": location.get("timezone"),
+        "country_code": location.get("country_code"),
+        "admin1": location.get("admin1", ""),  # State/region
+        "full_name": f"{location.get('name')}, {location.get('admin1', '')}, {location.get('country')}".strip(", ")
     }
+
+
+
 
 # ---- (Optional) Trivia (Open Trivia DB) ----
 @mcp.tool()

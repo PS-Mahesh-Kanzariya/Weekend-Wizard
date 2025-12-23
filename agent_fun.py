@@ -40,7 +40,7 @@ def llm_json(messages: List[Dict[str, str]]) -> Dict[str, Any]:
         })
     
     payload = {
-        "model": "llama-3.3-70b-versatile",
+        "model": "llama-3.1-8b-instant",
         "messages": groq_messages,
         "temperature": 0.2,
         "max_tokens": 1024,
